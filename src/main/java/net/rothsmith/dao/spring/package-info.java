@@ -3,5 +3,5 @@
  * 
  * @author drothauser
  */
-package com.fcci.dao.spring;
+package net.rothsmith.dao.spring;
 

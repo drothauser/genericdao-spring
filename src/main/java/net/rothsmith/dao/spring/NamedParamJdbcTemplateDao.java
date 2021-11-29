@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2009 FCCI Insurance Group, All rights reserved.
+ * Copyright (c) 2009 Rothsmith LLC, All rights reserved.
  */
-package com.fcci.dao.spring;
+package net.rothsmith.dao.spring;
 
 import java.util.List;
 import java.util.Map;
@@ -13,17 +13,19 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
-import com.fcci.dao.JdbcDao;
+import net.rothsmith.dao.JdbcDao;
 
 /**
- * {@link SimpleJdbcTemplate} implementation based of JdbcDao interface.
+ * {@link NamedParameterJdbcTemplate} implementation of the {@link JdbcDao}
+ * interface.
  * 
  * @author drothauser
  * 
  * @param <T>
- *            The class of the DTO being persisted or null of no DTO used. The
+ *            The class of the DTO being persisted or null if no DTO used. The
  *            way this class is used depends on the type of DML operation:
  *            <ul>
  *            <li>SELECT - defines the return type
@@ -36,14 +38,10 @@ import com.fcci.dao.JdbcDao;
  * 
  * @param <P>
  *            Parameter type
- * 
- * @deprecated This implementation uses {@link SimpleJdbcTemplate} which has
- *             been deprecated by Spring. Use {@link NamedParamJdbcTemplateDao}
- *             instead.
  */
-@SuppressWarnings({ "unchecked", "PMD.TooManyMethods" })
-@Deprecated
-public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
+@Repository
+@SuppressWarnings("PMD.TooManyMethods")
+public class NamedParamJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 
 	/**
 	 * The class of the DTO being persisted or null of no DTO used. The way this
@@ -60,14 +58,15 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	private Class<T> type;
 
 	/**
-	 * JDBC Datasource.
+	 * JDBC {@link DataSource}.
 	 */
 	private DataSource dataSource;
 
 	/**
-	 * The Spring {@link SimpleJdbcTemplate} object used to execute statements.
+	 * The Spring {@link NamedParameterJdbcTemplate} object used to execute
+	 * statements.
 	 */
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private NamedParameterJdbcTemplate jdbcTemplate;
 
 	/**
 	 * SQL statement {@link Map}.
@@ -80,14 +79,14 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	 * @param type
 	 *            Type of DTO
 	 */
-	public SimpleJdbcTemplateDao(final Class<T> type) {
+	public NamedParamJdbcTemplateDao(final Class<T> type) {
 		this.type = type;
 	}
 
 	/**
 	 * Default Constructor.
 	 */
-	public SimpleJdbcTemplateDao() {
+	public NamedParamJdbcTemplateDao() {
 		// for constructing DAO with no DTO type.
 	}
 
@@ -123,7 +122,7 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	}
 
 	/**
-	 * Set DataSource and create SimpleJDBCTemplate.
+	 * Set DataSource and create the jdbcTemplate instance variable.
 	 * 
 	 * @param dataSource
 	 *            DataSource
@@ -131,27 +130,27 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	@Override
 	public final void setDataSource(final DataSource dataSource) {
 		this.dataSource = dataSource;
-		simpleJdbcTemplate = new SimpleJdbcTemplate(dataSource);
+		jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
 	}
 
 	/**
-	 * Get simple jdbc template.
+	 * Get the {@link NamedParameterJdbcTemplate} instance.
 	 * 
 	 * @return the JdbcTemplate
 	 */
-	public final SimpleJdbcTemplate getJdbcTemplate() {
-		return simpleJdbcTemplate;
+	public final NamedParameterJdbcTemplate getJdbcTemplate() {
+		return jdbcTemplate;
 	}
 
 	/**
-	 * Set simple jdbc template.
+	 * Set the {@link NamedParameterJdbcTemplate} instance.
 	 * 
-	 * @param simpleJdbcTemplate
-	 *            the JdbcTemplate to set
+	 * @param jdbcTemplate
+	 *            a {@link NamedParameterJdbcTemplate} instance
 	 */
 	public final void setJdbcTemplate(
-	    final SimpleJdbcTemplate simpleJdbcTemplate) {
-		this.simpleJdbcTemplate = simpleJdbcTemplate;
+	    final NamedParameterJdbcTemplate jdbcTemplate) {
+		this.jdbcTemplate = jdbcTemplate;
 	}
 
 	/**
@@ -184,35 +183,28 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	 *            The parameters used by the SQL statement
 	 * @return a {@link List} of type T objects.
 	 */
+	@SuppressWarnings({ "unchecked", "PMD.AvoidDuplicateLiterals" })
 	private List<T> selectDtoParams(final String sql, final P params) {
-		Object list = null;
 
-		// If testParams of DTO type use named parameters
+		List<T> list = null;
+
 		if (type.isInstance(params)) {
-			list =
-			    simpleJdbcTemplate.query(sql,
-			        (RowMapper<T>) BeanPropertyRowMapper.newInstance(type),
-			        new BeanPropertySqlParameterSource(params));
-			// If Map type use named parameters
+			list = jdbcTemplate.query(sql,
+			    new BeanPropertySqlParameterSource(params),
+			    (RowMapper<T>) BeanPropertyRowMapper.newInstance(type));
 		} else if (params instanceof Map) {
-			list =
-			    simpleJdbcTemplate.query(sql,
-			        (RowMapper<T>) BeanPropertyRowMapper.newInstance(type),
-			        (Map<?, ?>) params);
-			// If Object[] use parameter markers
+			list = jdbcTemplate.query(sql, (Map<String, ?>) params,
+			    (RowMapper<T>) BeanPropertyRowMapper.newInstance(type));
 		} else if (params instanceof Object[]) {
-			list =
-			    simpleJdbcTemplate.query(sql,
-			        (RowMapper<T>) BeanPropertyRowMapper.newInstance(type),
-			        params);
-			// If any other type throw exception
+			list = jdbcTemplate.getJdbcOperations().query(sql,
+			    (RowMapper<T>) BeanPropertyRowMapper.newInstance(type), params);
 		} else {
 			throw new IllegalArgumentException("Parameters must be of type "
 			    + type.getCanonicalName() + ", " + Map.class.getCanonicalName()
 			    + " or " + Object[].class.getCanonicalName()
 			    + " type passed was " + params.getClass().getCanonicalName());
 		}
-		return (List<T>) list;
+		return list;
 	}
 
 	/**
@@ -223,15 +215,14 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	 *            The parameters used by the SQL statement
 	 * @return a {@link List} of type T objects.
 	 */
+	@SuppressWarnings("unchecked")
 	private List<T> selectNoDtoParams(final String sql, final P params) {
 		Object list = null;
-		// If Map type use named parameters
 		if (params instanceof Map) {
-			list = simpleJdbcTemplate.queryForList(sql, (Map<?, ?>) params);
-			// If Object[] use parameter markers
+			list =
+			    jdbcTemplate.queryForList(sql, (Map<String, ?>) params, type);
 		} else if (params instanceof Object[]) {
-			list = simpleJdbcTemplate.queryForList(sql, params);
-			// If any other type throw exception
+			list = jdbcTemplate.getJdbcOperations().queryForList(sql, params);
 		} else {
 			throw new IllegalArgumentException("Parameters must be of type "
 			    + Map.class.getCanonicalName() + " or "
@@ -239,21 +230,6 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 			    + params.getClass().getCanonicalName());
 		}
 		return (List<T>) list;
-	}
-
-	/**
-	 * Execute a select statement that doesn't use parameters.
-	 * 
-	 * @param statementId
-	 *            The key of the {@link NamedParamJdbcTemplateDao#statementMap}
-	 *            that points to the SQL statement to execute.
-	 * 
-	 * @return List of DTOs
-	 */
-	public final List<T> selectByStatement(final String statementId) {
-
-		return selectByStatement(statementId, null);
-
 	}
 
 	/**
@@ -267,9 +243,10 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	 * 
 	 * @return List of DTOs
 	 */
+	@SuppressWarnings("unchecked")
 	public final List<T> selectByStatement(String statementId, P params) {
 
-		String sql = statementMap.get(statementId);
+		final String sql = statementMap.get(statementId);
 		if (StringUtils.isEmpty(sql)) {
 			throw new IllegalArgumentException(String.format(
 			    "No sql statement found for statement \"%s\"", statementId));
@@ -280,17 +257,14 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 		if (type == null) {
 			// Query with no DTO and no parameters
 			if (params == null) {
-				list = simpleJdbcTemplate.queryForList(sql);
-				// Query no DTO and parameters
+				list = jdbcTemplate.getJdbcOperations().queryForList(sql);
 			} else {
 				list = selectNoDtoParams(sql, params);
 			}
 		} else {
-			// Query with DTO and no parameters
 			if (params == null) {
-				list =
-				    simpleJdbcTemplate.query(sql,
-				        (RowMapper<T>) BeanPropertyRowMapper.newInstance(type));
+				list = jdbcTemplate.query(sql,
+				    (RowMapper<T>) BeanPropertyRowMapper.newInstance(type));
 				// Query with DTO and parameters
 			} else {
 				list = selectDtoParams(sql, params);
@@ -310,12 +284,12 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	 * 
 	 * @return List of DTOs
 	 */
-	public final List<T> select(String sql, P params) {
+	@SuppressWarnings("unchecked")
+	public final List<T> select(final String sql, final P params) {
 		Object list = null;
 		if (type == null) {
-			// Query with no DTO and no parameters
 			if (params == null) {
-				list = simpleJdbcTemplate.queryForList(sql);
+				list = jdbcTemplate.getJdbcOperations().queryForList(sql);
 				// Query no DTO and parameters
 			} else {
 				list = selectNoDtoParams(sql, params);
@@ -323,10 +297,8 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 		} else {
 			// Query with DTO and no parameters
 			if (params == null) {
-				list =
-				    simpleJdbcTemplate.query(sql,
-				        (RowMapper<T>) BeanPropertyRowMapper.newInstance(type));
-				// Query with DTO and parameters
+				list = jdbcTemplate.query(sql,
+				    (RowMapper<T>) BeanPropertyRowMapper.newInstance(type));
 			} else {
 				list = selectDtoParams(sql, params);
 			}
@@ -342,7 +314,7 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	 * 
 	 * @return List of DTOs
 	 */
-	public final List<T> select(String sql) {
+	public final List<T> select(final String sql) {
 		return select(sql, null);
 	}
 
@@ -356,7 +328,7 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	 * @return List of DTOs
 	 */
 	@Override
-	public final List<T> select(P params) {
+	public final List<T> select(final P params) {
 		return selectByStatement("select", params);
 	}
 
@@ -369,7 +341,7 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	 *            the DTO to persist.
 	 * @return Records affected
 	 */
-	public final int insert(String statement, final T dto) {
+	public final int insert(final String statement, final T dto) {
 		return update(statement, dto);
 	}
 
@@ -395,21 +367,21 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	 *            the DTO to update.
 	 * @return Records affected
 	 */
-	public final int execute(String sql, final T param) {
+	@SuppressWarnings("unchecked")
+	public final int execute(final String sql, final T param) {
 
 		int recordsModified = 0;
 
 		// if type is null, set it to ObjectUtils.NULL to avert NPE:
-		Class<?> daoType =
+		final Class<?> daoType =
 		    (Class<?>) ((type == null) ? ObjectUtils.NULL.getClass() : type);
 
 		if (param == null) {
-			recordsModified = getJdbcTemplate().update(sql);
+			recordsModified = jdbcTemplate.getJdbcOperations().update(sql);
 		} else if (daoType.isInstance(param)) {
 			// If DTO type use named parameters
-			recordsModified =
-			    getJdbcTemplate().update(sql,
-			        new BeanPropertySqlParameterSource(param));
+			recordsModified = getJdbcTemplate().update(sql,
+			    new BeanPropertySqlParameterSource(param));
 		} else if (param instanceof Map<?, ?>) {
 			// If Map type use named parameters
 			recordsModified =
@@ -417,14 +389,15 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 
 		} else if (param instanceof Object[]) {
 			// If Object[] use parameter markers
-			recordsModified = getJdbcTemplate().update(sql, param);
+			recordsModified =
+			    getJdbcTemplate().getJdbcOperations().update(sql, param);
 		} else {
 			// If any other type throw exception
-			throw new IllegalArgumentException("DTO must be of type "
-			    + daoType.getCanonicalName() + ", "
-			    + Map.class.getCanonicalName() + " or "
-			    + Object[].class.getCanonicalName() + " type passed was "
-			    + param.getClass().getCanonicalName());
+			throw new IllegalArgumentException(
+			    "DTO must be of type " + daoType.getCanonicalName() + ", "
+			        + Map.class.getCanonicalName() + " or "
+			        + Object[].class.getCanonicalName() + " type passed was "
+			        + param.getClass().getCanonicalName());
 		}
 		return recordsModified;
 	}
@@ -437,7 +410,7 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	 *            The sql statement to execute.
 	 * @return Records affected
 	 */
-	public final int execute(String sql) {
+	public final int execute(final String sql) {
 
 		return execute(sql, null);
 	}
@@ -468,12 +441,11 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	 *            the DTO to update.
 	 * @return Records affected
 	 */
-	public final int update(String statementKey, final T dto) {
-		String sql = statementMap.get(statementKey);
+	public final int update(final String statementKey, final T dto) {
+		final String sql = statementMap.get(statementKey);
 		if (StringUtils.isEmpty(sql)) {
 			throw new IllegalArgumentException(
-			    String.format(
-			        "No sql statement found for statement key \"%s\"",
+			    String.format("No sql statement found for statement key \"%s\"",
 			        statementKey));
 		}
 		return execute(sql, dto);
@@ -490,11 +462,10 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	 */
 	public final int update(final String statementKey) {
 
-		String sql = statementMap.get(statementKey);
+		final String sql = statementMap.get(statementKey);
 		if (StringUtils.isEmpty(sql)) {
 			throw new IllegalArgumentException(
-			    String.format(
-			        "No sql statement found for statement key \"%s\"",
+			    String.format("No sql statement found for statement key \"%s\"",
 			        statementKey));
 		}
 
@@ -512,11 +483,10 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	 */
 	public final int delete(final String statementKey, final T dto) {
 
-		String sql = statementMap.get(statementKey);
+		final String sql = statementMap.get(statementKey);
 		if (StringUtils.isEmpty(sql)) {
 			throw new IllegalArgumentException(
-			    String.format(
-			        "No sql statement found for statement key \"%s\"",
+			    String.format("No sql statement found for statement key \"%s\"",
 			        statementKey));
 		}
 
@@ -534,6 +504,16 @@ public class SimpleJdbcTemplateDao<T, P> implements JdbcDao<T, P> {
 	@Override
 	public final int delete(final T dto) {
 		return delete("delete", dto);
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public List<T> selectByStatement(String statementId) {
+
+		return selectByStatement(statementId, null);
+
 	}
 
 }

@@ -1,16 +1,17 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
-		<groupId>com.fcci</groupId>
-		<artifactId>fcci-spring4</artifactId>
-		<version>3.0.0</version>
+		<groupId>net.rothsmith</groupId>
+		<artifactId>rothsmith-parent</artifactId>
+		<version>1</version>
 	</parent>
 	<artifactId>genericdao-spring</artifactId>
-	<version>3.0.1-SNAPSHOT</version>
+	<version>${revision}${changelist}</version>
 
 	<name>Generic Spring DAO</name>
 
 	<properties>
+		<revision>1.0.0</revision>
 		<checkstyle.config>${basedir}/checkstyle_checks.xml</checkstyle.config>
 		<pmd.rulesfile>${basedir}/pmdrules.xml</pmd.rulesfile>		
 	</properties>
@@ -23,11 +24,10 @@
 	</scm>
 
 	<dependencies>
-
+	
 		<dependency>
-			<groupId>com.fcci</groupId>
+			<groupId>net.rothsmith</groupId>
 			<artifactId>genericdao-api</artifactId>
-			<version>3.0.0</version>
 		</dependency>
 
 		<dependency>
@@ -42,7 +42,6 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-core</artifactId>
-			<version>${org.springframework.version}</version>
 		</dependency>
 
 		<!--
@@ -52,7 +51,6 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-expression</artifactId>
-			<version>${org.springframework.version}</version>
 		</dependency>
 
 		<!--
@@ -62,7 +60,6 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-beans</artifactId>
-			<version>${org.springframework.version}</version>
 		</dependency>
 
 		<!--
@@ -73,7 +70,6 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-aop</artifactId>
-			<version>${org.springframework.version}</version>
 		</dependency>
 
 		<!--
@@ -84,7 +80,6 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-context</artifactId>
-			<version>${org.springframework.version}</version>
 		</dependency>
 
 		<!--
@@ -147,7 +142,6 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-test</artifactId>
-			<version>${org.springframework.version}</version>
 			<scope>test</scope>
 		</dependency>
 
